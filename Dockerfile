@@ -16,7 +16,7 @@ RUN apt-get update -qq && apt-get install -y default-libmysqlclient-dev \
                                              libcurl4-openssl-dev libssl-dev \
                                              zip nodejs ##ALSO TRIED: ruby-pg
 
-RUN npm install -g bower
+RUN npm install -g yarn
 
 WORKDIR /app
 COPY Gemfile /app/Gemfile
