@@ -1,7 +1,7 @@
 source "https://rubygems.org"
 
 ruby "2.4.4"
-gem "rails", "~>3.2"
+gem "rails", "4.2.8"
 gem 'rake',  '~> 12.3.2'
 
 gem "will_paginate", "3.1.6"
@@ -19,6 +19,9 @@ group :dependencies do
   gem "open_id_authentication"
   gem "RubyInline"
   gem "paperclip", "~>4.2.2"
+  gem 'jquery-rails'
+  gem 'turbolinks'
+  gem 'rails-ujs'
 
   # if you use amazon s3 for warpable image storage
   gem 'aws-sdk', '~> 1.5.7'
