@@ -1,7 +1,10 @@
 
+require_relative '../config/environment'
 require 'simplecov'
-require 'simplecov-cobertura'
-require File.expand_path('../../config/environment', __FILE__)
+require 'codecov'
+SimpleCov.formatter = SimpleCov::Formatter::Codecov
+SimpleCov.start
+
 require 'rails/test_help'
 require 'minitest/reporters'
 MiniTest::Reporters.use! [MiniTest::Reporters::ProgressReporter.new,
@@ -10,11 +13,9 @@ ENV["RAILS_ENV"] = "test"
 
 class ActiveSupport::TestCase
   # Setup all fixtures in test/fixtures/*.(yml|csv) for all tests in alphabetical order.
-  #
-  # Note: You'll currently still have to declare fixtures explicitly in integration tests
-  # -- they do not yet inherit this setting
   fixtures :all
-
+  # Run tests in parallel with specified workers
+  parallelize(workers: :number_of_processors)
   # Add more helper methods to be used by all tests here...
   include ApplicationHelper
 end

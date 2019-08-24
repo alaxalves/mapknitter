@@ -9,21 +9,19 @@
   <meta name="description" content="<%= @map.description.gsub('"',"'") if @map.description %>" />  
   <meta name="viewport" content="width=320, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"/>
 
-  <link rel="stylesheet" href="/lib/fontawesome/css/font-awesome.min.css"/>
-  <link rel="stylesheet" href="/lib/leaflet/dist/leaflet.css"/>
+  <link rel="stylesheet" href="/packs/leaflet/dist/leaflet.css"/>
   <link rel="shortcut icon" href="/images/mapknitter-255.png" />
 
-  <%= stylesheet_link_tag 'application' %>
-  <%= javascript_include_tag 'application' %>
-  <%= javascript_include_tag 'maps' %>
-  <%= javascript_include_tag 'uploads' %>
-  <% if @annotations %><%= javascript_include_tag 'annotations' %><% end %>
+  <%= stylesheet_pack_tag 'application' %>
+  <%= javascript_pack_tag 'application' %>
+  <%= javascript_pack_tag 'maps' %>
+  <%= javascript_pack_tag 'uploads' %>
+  <% if @annotations %><%= javascript_pack_tag 'annotations' %><% end %>
 
   <script src='//api.tiles.mapbox.com/mapbox.js/plugins/leaflet-omnivore/v0.3.1/leaflet-omnivore.min.js' async defer></script>
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAxlBXzYwdeaOMKZgx_UNBp2qBtdD0L_9g"></script>
   <script src='https://unpkg.com/leaflet.gridlayer.googlemutant@0.7.0/Leaflet.GoogleMutant.js'></script>
-  <script src='/lib/image-sequencer/dist/image-sequencer.js'></script>
-
+  <script src='/packs/image-sequencer/dist/image-sequencer.js'></script>
 </head>
 <body>
 
@@ -82,7 +80,7 @@
                 </button>
 
               <!-- Write a research note on Public Lab -->
-                <a target="_blank" class="btn btn-outline-secondary" title="Post a research note on Public Lab" href="//publiclab.org/post?title=MapKnitter map of <%= @map.name %>&tags=lat:<%= @map.lat %>,lon:<%= @map.lon %>,mapknitter&body=%3Ciframe%20src=%22https://mapknitter.org/embed/<%= @map.slug %>%22%20style=%22border:none%22%20width=%22100%25%22%20height=%22400px%22%3E%3C/iframe%3E%3Cbr /%3E%3Cbr /%3E<%= @map.description %>%3Cbr /%3Ehttps://mapknitter.org/embed/<%= @map.slug %>" type="button">
+                <a target="_blank" class="btn btn-outline-secondary" title="Post a research note on Public Lab" href="//publiclab.org/post?title=MapKnitter map of <%= @map.name %>&tags=lat:<%= @map.lat %>,lon:<%= @map.lon %>,mapknitter&body=%3Cimg src=%22<%= @map.warpables.first&.image&.url(:medium) %>%22%3E%3C/img%3E%3Ciframe%20src=%22https://mapknitter.org/embed/<%= @map.slug %>%22%20style=%22border:none%22%20width=%22100%25%22%20height=%22400px%22%3E%3C/iframe%3E%3Cbr /%3E%3Cbr /%3E<%= @map.description %>%3Cbr /%3Ehttps://mapknitter.org/embed/<%= @map.slug %>" type="button">
                   <span class="d-none d-sm-block"><span class="fa fa-file"></span> Post</span>
                 </a>
 
@@ -193,7 +191,7 @@
   <script>
     var map
     (function(){
-      window.mapKnitter = new MapKnitter.Map({
+      window.mapknitter = new MapKnitter.Map({
         latlng:     L.latLng(<%= @map.lat %>, <%= @map.lon %>),
         zoom:       <%= @map.zoom %>,
         readOnly:   <%= @embed == true || @annotations == true %>,

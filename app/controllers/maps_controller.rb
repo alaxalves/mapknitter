@@ -3,8 +3,8 @@ require 'open3'
 class MapsController < ApplicationController
   protect_from_forgery except: :export
 
-  before_filter :require_login, only: %i(edit update destroy)
-  before_filter :find_map, only: %i(show annotate embed edit update images destroy archive)
+  before_action :require_login, only: %i(edit update destroy)
+  before_action :find_map, only: %i(show annotate embed edit update images destroy archive)
 
   layout 'knitter2'
 
@@ -61,9 +61,6 @@ class MapsController < ApplicationController
     # this is used for the resolution slider
     @resolution = @map.average_cm_per_pixel.round(4)
     @resolution = 5 if @resolution < 5 # soft-set min res
-
-    # remove following lines once legacy interface is deprecated
-    render template: 'map/show', layout: 'knitter' if params[:legacy]
   end
 
   def archive
@@ -83,6 +80,7 @@ class MapsController < ApplicationController
   def embed
     @map.zoom ||= 12
     @embed = true
+    response.headers.except! 'X-Frame-Options' # allow use of embed in iframes
     render template: 'maps/show'
   end
 
@@ -94,7 +92,7 @@ class MapsController < ApplicationController
   def edit; end
 
   def update
-    @map.update_attributes(map_params)
+    @map.update(map_params)
 
     save_tags(@map)
     @map.save
@@ -114,14 +112,7 @@ class MapsController < ApplicationController
 
   # used by leaflet to fetch corner coords of each warpable
   def images
-    warpables = []
-    @map.warpables.each do |warpable|
-      warpables << warpable
-      warpables.last[:nodes] = warpable.nodes_array
-      warpables.last.src = warpable.image.url
-      warpables.last.srcmedium = warpable.image.url(:medium)
-    end
-    render json: warpables
+    render json: @map.warpables
   end
 
   # run the export
@@ -144,11 +135,16 @@ class MapsController < ApplicationController
   def region
     area = params[:id] || 'this area'
     @title = "Maps in #{area}"
-    ids = Map.bbox(params[:minlat], params[:minlon], params[:maxlat], params[:maxlon]).collect(&:id)
-    @maps = Map.where(password: '')
-               .where('id IN (?)', ids)
-               .paginate(page: params[:page], per_page: 24)
-               .except(:styles)
+    ids = Map.bbox(params[:minlat], params[:minlon], params[:maxlat], params[:maxlon], params[:tag])
+             .collect(&:id)
+    cache_key = "#{params[:minlat]}-#{params[:maxlat]}-#{params[:minlon]}-#{params[:maxlon]}-#{params[:tag]}"
+    @maps =
+      Rails.cache.fetch(cache_key, expires_in: 1.day) do
+        Map.where(password: '')
+          .where('id IN (?)', ids)
+          .paginate(page: params[:page], per_page: 50)
+          .except(:styles, :email)
+      end
     @maps.each do |map|
       map.image_urls = map.warpables.map { |warpable| warpable.image.url }
     end
@@ -179,14 +175,18 @@ class MapsController < ApplicationController
 
     respond_to do |format|
       if query.length < 3
-        flash.now[:notice] = 'Invalid Query: non white-space character count is less than 3'
+        flash.now[:info] = 'Invalid Query: non white-space character count is less than 3'
         @title = 'Featured maps'
-        @maps = Map.featured.paginate(page: params[:page], per_page: 24)
-        format.html { render 'maps/index', layout: 'application' }
+        @maps = Map.featured
+                   .paginate(page: params[:page], per_page: 24)
+                   .except(:styles, :email)
+        @authors = User.where(login: Map.featured.collect(&:author))
+                                     .paginate(page: params[:mappers], per_page: 20)
+        format.html { render 'front_ui/gallery', layout: 'application' }
       else
         @title = "Search results for '#{data}'"
         @maps = Map.search(data).paginate(page: params[:page], per_page: 24)
-        format.html { render 'maps/index', layout: 'application' }
+        format.html { render 'front_ui/gallery', layout: 'application' }
         format.json { render json: @maps }
       end
     end

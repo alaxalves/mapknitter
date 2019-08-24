@@ -1,4 +1,4 @@
-class Map < ActiveRecord::Base
+class Map < ApplicationRecord
   include ActiveModel::Validations
   extend FriendlyId
   friendly_id :name, use: %i(slugged static)
@@ -6,7 +6,7 @@ class Map < ActiveRecord::Base
   attr_accessor :image_urls
 
   validates_presence_of :name, :slug, :author, :lat, :lon
-  validates_uniqueness_of :slug
+  validates_uniqueness_of :slug, case_sensitive: true
   validates_presence_of :location, message: ' cannot be found. Try entering a latitude and longitude if this problem persists.'
   # validates_format_of   :slug,
   #                       :with => /^[\w-]*$/,
@@ -20,7 +20,7 @@ class Map < ActiveRecord::Base
   has_many :tags, dependent: :destroy
   has_many :comments, dependent: :destroy
   has_many :annotations, dependent: :destroy
-  belongs_to :user
+  belongs_to :user, optional: true
 
   has_many :warpables
   scope :active, -> { where(archived: false) }
@@ -47,9 +47,19 @@ class Map < ActiveRecord::Base
     author == "" || user_id.zero?
   end
 
-  def self.bbox(minlat, minlon, maxlat, maxlon)
-    Map.where(['lat > ? AND lat < ? AND lon > ? AND lon < ?',
-               minlat, maxlat, minlon, maxlon])
+  def self.anonymous
+    Map.where(user_id: 0)
+  end
+
+  def self.bbox(minlat, minlon, maxlat, maxlon, tag = nil)
+    if tag.nil?
+      Map.where(['lat > ? AND lat < ? AND lon > ? AND lon < ?',
+                 minlat, maxlat, minlon, maxlon])
+    else
+      Map.where(['lat > ? AND lat < ? AND lon > ? AND lon < ?',
+                 minlat, maxlat, minlon, maxlon])
+         .joins(:tags).where("tags.name = ?", tag)
+    end
   end
 
   def exporting?
@@ -103,8 +113,8 @@ class Map < ActiveRecord::Base
   def self.featured_authors
     maps = Map.active.has_user
 
-    author_counts = maps.group('author')
-                        .select('user_id, author, count(1) as maps_count')
+    author_counts = maps.select('user_id, author, count(1) as maps_count')
+                        .group('author')
                         .order('maps_count DESC')
 
     author_counts.map do |a|
@@ -140,7 +150,7 @@ class Map < ActiveRecord::Base
     return [] if lat.to_f == 0.0 || lon.to_f == 0.0
 
     Map.where('id != ? AND lat > ? AND lat < ? AND lon > ? AND lon < ?',
-      id, lat - dist, lat + dist, lon - dist, lon + dist)
+              id, lat - dist, lat + dist, lon - dist, lon + dist)
       .limit(10)
   end
 
@@ -230,14 +240,14 @@ class Map < ActiveRecord::Base
     new_export = Export.new(map_id: id) unless export
 
     Exporter.run_export(user,
-      resolution,
-      export || new_export,
-      id,
-      slug,
-      Rails.root.to_s,
-      average_scale,
-      placed_warpables,
-      key)
+                        resolution,
+                        export || new_export,
+                        id,
+                        slug,
+                        Rails.root.to_s,
+                        average_scale,
+                        placed_warpables,
+                        key)
   end
 
   def after_create

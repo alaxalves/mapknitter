@@ -17,7 +17,7 @@ class ExportController < ApplicationController
     if params[:action] == 'progress'
       nil
     else
-      RAILS_DEFAULT_LOGGER
+      Rails.logger
     end
   end
 
@@ -79,6 +79,16 @@ class ExportController < ApplicationController
     else
       render json: { status: 'export has not been run' }
     end
+  end
+
+  def create
+    # Saving in export_url column because assuming that is not being used in new Export API
+    # if it is, instead create a new col like 'status_url' and save the url there
+
+    # mySQL2 error ActiveRecord::StatementInvalid (Mysql2::Error: Field 'bands_string' doesn't have a default value: INSERT INTO `exports` (`export_url`, `created_at`, `updated_at`) VALUES ('//export.mapknitter.org/id/1562102960/status.json', '2019-07-02 21:29:20', '2019-07-02 21:29:20')):
+    # so adding a default value for now. I think this column will be deprecated?
+    export = Export.create!(export_url: params[:status_url], bands_string: 'default bands_string')
+    render json: export.to_json
   end
 
   # for demoing remote url functionality during testing

@@ -2,7 +2,7 @@
 # https://github.com/publiclab/mapknitter/
 # This image deploys Mapknitter!
 
-FROM ruby:2.4.6-stretch
+FROM ruby:2.6.3-stretch
 
 # Set correct environment variables.
 ENV HOME /root
@@ -21,20 +21,16 @@ RUN apt-get update -qq && apt-get install -y \
 # Configure ImageMagick
 COPY ./nolimit.xml /etc/ImageMagick-6/policy.xml
 
-RUN curl -sL https://deb.nodesource.com/setup_8.x | bash - && apt-get install -y npm
+RUN curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt-get install -y npm
 RUN npm install -g yarn
 
+# See https://github.com/instructure/canvas-lms/issues/1404#issuecomment-461023483 and
+# https://github.com/publiclab/mapknitter/pull/803
+RUN git config --global url."https://".insteadOf git://
+
 # Install bundle of gems
-SHELL [ "/bin/bash", "-l", "-c" ]
-WORKDIR /tmp
-ADD Gemfile /tmp/Gemfile
-ADD Gemfile.lock /tmp/Gemfile.lock
-RUN bundle install
-
 # Add the Rails app
+COPY . /app/
 WORKDIR /app
-COPY Gemfile /app/Gemfile
-COPY Gemfile.lock /app/Gemfile.lock
-COPY start.sh /app/start.sh
 
-CMD [ "bash", "-l", "start.sh" ]
+CMD [ "sh", "/app/start.sh" ]
